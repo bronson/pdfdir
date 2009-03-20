@@ -5,94 +5,62 @@
 # 17 Mar 2009
 #
 # This script will assemble a bunch of PDFs files in a directory
-# hierarchy into a single pdf with bookmarks to each individual file.
+# hierarchy into a single pdf with bookmarks to each file.
 #
 # requires: JPdfBookmarks
 # http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
 #
-# Your files could be arranged like this:
+# Your files should be arranged in a hierarchy, somewhat like this:
 #     book/01-Introduction.pdf
 #     book/02-Engine
 #     book/02-Engine/01-Oil.pdf
 #     book/02-Engine/01-Freeze Plugs.pdf
+# The "01-", "02-" etc to force ordering will be stripped from the
+# bookmark name.
 #
-# Then just fire it up to display the bookmarks it would set:
+# Then just run this script:
 #     $ assemble-chapters book
-# If it looks good, then tell it to go ahead and do it:
-#     $ assemble-chapters book --go
 #
-# NOTE: The first dash in and everything before it will be stripped!
-# If you want to change the chapter prefix (to use, say "a. Chapter"
-# instead of "01-Chapter") modify the fix_filename function.
-#
-# If bookmarks are being placed in the wrong location, the PDF page
-# counting algorithm is probably the culprit.  Run
-# assemble-chapters --count Doc.pdf to see if the count is correct.
-#
-# Thanks to fpmurphy's fast PDF page counting snippet:
-#	http://www.unix.com/shell-programming-scripting/55661-how-get-number-pages-pdf-file.html
+# TODO: it would not be too hard to preserve existing bookmarks.  Just need
+# to read them, offset them, and include them in the new bookmark file.
 
+
+die () {
+	echo "$*" >&2
+	exit 1
+}
 
 root="$1"
-oldifs="$IFS"
-if [ "x$root" = "x" ]; then root="."; fi
+[ "x$root" = "x" ] && die "Please specify a directory to operate on"
+outbase="$(basename "$root")"
+[ -f "$outbase".pdf ] && die "Will not overwrite $outbase.pdf"
 
 
-# Strips the numbering from file and directory names.  My files are
-# numbered "01-blah", so ${1#*-} returns "blah" in filename.  If
-# your pages are numbered with periods, just change the dash to a period.
-# See http://mywiki.wooledge.org/BashFAQ/073 for more on how this works.
+# Strips the numbering from file and directory names.
+# http://mywiki.wooledge.org/BashFAQ/073 describes this.
 fix_filename() {
 	echo "${1#*-}"
 }
-
-
-# Given the name of a pdf file, outputs the number of pages in the file.
-count_pdf_pages() {
-	page_count=0
-
-	# Try to quickly determine how many pages are in here
-	while read num; do
-		# Turns "BLA BLA/Count 21314BLA BLA" into 21314
-		num="${num#*/Count }"
-		num="${num%%[!0-9]*}"
-		(($num > $page_count)) && page_count=$num
-	done < <(strings "$1" | grep "/Count")
-
-	# If the quick hack didn't work, try a *much* slower one
-	if [ $page_count = 0 ]; then
-		page_count=$(pdf2ps -sOutputFile=- "$1" | grep -c "%%Page: ")
-	fi
-
-	echo -n "$page_count"
-}
-
-# Run the PDF page counting if we were called with "--count file.pdf"
-if [ "x$1" = "x--count" ]; then
-	while true; do
-		shift
-		[ -z "$1" ] && exit
-		echo "$(count_pdf_pages "$1") $1"
-	done
-fi
 
 
 # If the previous path and current path contain different directories,
 # this function prints the lines needed to get them back in sync.
 print_differing() {
 	while true; do
-		echo "$prestr$(fix_filename ${entries[$idir]})"
+		echo "$prestr$(fix_filename ${entries[$idir]})/$curpage,FitWidth,0"
 		stack[$idir]="${entries[$idir]}"
 		prestr="$prestr"$(echo -en "\t")
 		[ $((idir++)) -eq $lastdir ] && break;
 	done
 }
 
-
-curpage=1
-find "$root" -name "*.pdf" -print | sort | while read path; do
-	IFS=/ entries=( $path )
+# Creates a valid hierarchy for the given path
+process_path() {
+	curpage="$2"
+	oldifs="$IFS"
+	IFS=/ entries=( $1 )
 	IFS="$oldifs"
+
 	prestr=""
 	lastdir=$((${#entries[*]}-2))
 	for idir in $(seq 1 $lastdir); do
@@ -105,6 +73,53 @@ find "$root" -name "*.pdf" -print | sort | while read path; do
 	filename="${entries[$((lastdir+1))]}"
 	name="$(fix_filename "$name")"
 	echo "$prestr${filename/%\.pdf/}/$curpage,FitWidth,0"
-	curpage=$(($curpage + $(count_pdf_pages "$path")))
-done
+}
+
+# Turns the output from ghostscript into a bookmark file.
+process_gs_output() {
+	pat_newfile='Processing pages ([0-9]+) through ([0-9]+)'
+	pat_newpage='Page ([0-9]+)'
+	outpage=1
+	while read line; do
+		if [[ $line =~ $pat_newfile ]]; then
+			[ "x$totalpages" != "x$inpage" ] && \
+				die "Did not match: $inpage vs $totalpages"
+			outpage=$((outpage + inpage))
+			curpathno=$((curpathno + 1))
+			read curpath <&5 || die "$pathfile truncated!"
+			inpage=1;
+			totalpages="${BASH_REMATCH[2]}"
+			echo -e "\nFile $curpathno/$pathcount: $curpath"
+			process_path "$curpath" "$outpage" >&6
+			echo -n " $totalpages Pages:"
+		elif [[ $line =~ $pat_newpage ]]; then
+			inpage="${BASH_REMATCH[1]}"
+			echo -n " $((inpage+outpage-1))"
+		fi
+	done
+	echo
+	read curpath <&5 && die "$pathfile too long: $curpath"
+	exec 5<&-
+	exec 6>&-
+}
+
+
+# ok lets go
+
+pathfile="$(mktemp)" || exit 1
+pathcount=$(find "$root" -name "*.pdf" -print | sort | tee "$pathfile" | wc -l)
+exec 5<"$pathfile"
+markfile="$(mktemp)" || exit 1
+exec 6>"$markfile"
+
+while read path; do
+  echo "($path) run"
+done < "$pathfile" | gs -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE 2>/dev/null | process_gs_output
+
+rm "$pathfile"
+echo "Applying bookmarks..."
+jpdfbookmarks --apply "$outbase".nomarks.pdf "$markfile" "$outbase".pdf
+rm "$markfile"
+rm "$outbase".nomarks.pdf
+echo "PDF saved to $outbase".pdf
 
