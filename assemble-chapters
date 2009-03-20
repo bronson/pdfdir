@@ -1,12 +1,16 @@
 #!/bin/bash
 #
-# This script will assemble a bunch of separate PDFs in a directory
+# assemble-chapters
+# Scott Bronson, bronson@rinspin.com
+# 17 Mar 2009
+#
+# This script will assemble a bunch of PDFs files in a directory
 # hierarchy into a single pdf with bookmarks to each individual file.
 #
 # requires: JPdfBookmarks
 # http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
 #
-# Your files should be arranged like this:
+# Your files could be arranged like this:
 #     book/01-Introduction.pdf
 #     book/02-Engine
 #     book/02-Engine/01-Oil.pdf
@@ -21,6 +25,10 @@
 # If you want to change the chapter prefix (to use, say "a. Chapter"
 # instead of "01-Chapter") modify the fix_filename function.
 #
+# If bookmarks are being placed in the wrong location, the PDF page
+# counting algorithm is probably the culprit.  Run
+# assemble-chapters --count Doc.pdf to see if the count is correct.
+#
 # Thanks to fpmurphy's fast PDF page counting snippet:
 #	http://www.unix.com/shell-programming-scripting/55661-how-get-number-pages-pdf-file.html
 
@@ -29,36 +37,42 @@ root="$1"
 oldifs="$IFS"
 if [ "x$root" = "x" ]; then root="."; fi
 
-# set this to non-empty to turn on debug messages
-debug=
-
 
 # Strips the numbering from file and directory names.  My files are
 # numbered "01-blah", so ${1#*-} returns "blah" in filename.  If
 # your pages are numbered with periods, just change the dash to a period.
 # See http://mywiki.wooledge.org/BashFAQ/073 for more on how this works.
 fix_filename() {
-	filename="${1#*-}"
+	echo "${1#*-}"
 }
 
 
+# Given the name of a pdf file, outputs the number of pages in the file.
 count_pdf_pages() {
 	page_count=0
+
+	# Try to quickly determine how many pages are in here
 	while read num; do
 		# Turns "BLA BLA/Count 21314BLA BLA" into 21314
 		num="${num#*/Count }"
 		num="${num%%[!0-9]*}"
 		(($num > $page_count)) && page_count=$num
 	done < <(strings "$1" | grep "/Count")
+
+	# If the quick hack didn't work, try a *much* slower one
+	if [ $page_count = 0 ]; then
+		page_count=$(pdf2ps -sOutputFile=- "$1" | grep -c "%%Page: ")
+	fi
+
 	echo -n "$page_count"
 }
 
-# Test out the PDF page counting method if called with "--count bla.pdf"
+# Run the PDF page counting if we were called with "--count file.pdf"
 if [ "x$1" = "x--count" ]; then
 	while true; do
 		shift
 		[ -z "$1" ] && exit
-		echo $(count_pdf_pages "$1")" $1"
+		echo "$(count_pdf_pages "$1") $1"
 	done
 fi
 
@@ -67,8 +81,7 @@ fi
 # this function prints the lines needed to get them back in sync.
 print_differing() {
 	while true; do
-		fix_filename "${entries[$idir]}"
-		echo "$prestr$filename"
+		echo "$prestr$(fix_filename ${entries[$idir]})"
 		stack[$idir]="${entries[$idir]}"
 		prestr="$prestr"$(echo -en "\t")
 		[ $((idir++)) -eq $lastdir ] && break;
@@ -76,21 +89,22 @@ print_differing() {
 }
 
 
+curpage=1
 find "$root" -name "*.pdf" -print | sort | while read path; do
-[ $debug ] && echo "--- path=$path"
 	IFS=/ entries=( $path )
 	IFS="$oldifs"
 	prestr=""
 	lastdir=$((${#entries[*]}-2))
 	for idir in $(seq 1 $lastdir); do
-[ $debug ] && echo "---- stack=${stack[*]}" "entries=${entries[*]}" "idir=$idir" lastdir=$lastdir
 		if [ "x${stack[$idir]}" != "x${entries[$idir]}" ]; then
 			print_differing
 			break
 		fi
 		prestr="$prestr"$(echo -en "\t")
 	done
-	fix_filename "${entries[$((lastdir+1))]}"
-	echo "$prestr${filename/%\.pdf/}"
+	filename="${entries[$((lastdir+1))]}"
+	name="$(fix_filename "$name")"
+	echo "$prestr${filename/%\.pdf/}/$curpage,FitWidth,0"
+	curpage=$(($curpage + $(count_pdf_pages "$path")))
 done
 
