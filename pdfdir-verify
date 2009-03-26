@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# pdfdir-verify
+# Scott Bronson, bronson@rinspin.com
+# 26 Mar 2009
+#
+# This script tries to determine if your pdf files are good.
+# It prints warnings if it suspects any of them are flawed or corrupt,
+#   -q --quick: only use the quick-n-dirty alorithm.  It's much faster
+#       but some of your PDFs will probably appear to have 0 pages.
+#   -v --verbose: print the result for each file.  Normally this utility
+#       only produces output when its tests fail.
+#
+# Thanks to fpmurphy's fast PDF page counting snippet:
+# http://www.unix.com/shell-programming-scripting/55661-how-get-number-pages-pdf-file.html
+
+
+quick=false
+verbose=false
+
+while (( "$#" )); do
+	[ "x$1" = "x-v" ] || [ "x$1" = "x--verbose" ] && verbose=true
+	[ "x$1" = "x-q" ] || [ "x$1" = "x--quick" ] && quick=true
+	shift
+done
+
+
+root="$1"
+oldifs="$IFS"
+if [ "x$root" = "x" ]; then root="."; fi
+
+
+# Given the name of a pdf file, outputs the number of pages in the file.
+# This is just a quick-n-dirty algorithm; it's known to fail.
+count_pdf_pages() {
+	page_count=0
+
+	while read num; do
+		# Turns "BLA BLA/Count 21314BLA BLA" into 21314
+		num="${num#*/Count }"
+		num="${num%%[!0-9]*}"
+		(($num > $page_count)) && page_count=$num
+	done < <(strings "$1" | grep "/Count")
+	echo -n "$page_count"
+}
+
+
+filepat=': PDF document, version [0-9.]*$'
+numpat='[0-9][0-9]*'
+
+find "$root" -name "*.pdf" -print | sort | while read path; do
+	[ -z "$path" ] && exit
+
+	type=$(file "$path")
+	# This RE is probably way too restrictive. I'll accept patches.
+	if [[ ! "$type" =~ $filepat ]]; then
+		echo "ERROR: $type <-- bad or unrecognized file type!"
+		continue
+	fi
+
+	quick_count=$(count_pdf_pages "$path")
+	if [[ ! "$quick_count" =~ $numpat ]]; then
+		echo "ERROR: $path: bad quick count '$quick_count'"
+		continue
+	fi
+
+	if ! $quick; then
+		slow_count=$(pdf2ps -sOutputFile=- "$path" | grep -c "%%Page: ")
+		if [[ ! "$slow_count" =~ $numpat ]]; then
+			echo "ERROR: $path: bad slow count '$slow_count'"
+			continue
+		fi
+
+		if [ "$quick_count" -lt 1 ]; then
+			# the quick count algorithm sometimes fails
+			# we just have to assume the slow count is correct
+			echo "warning: $path: quick count failed ($quick_count).  No problem."
+			quick_count="$slow_count"
+		fi
+
+		if [ "$quick_count" -ne "$slow_count" ]; then
+			echo "ERROR: $path: quick count ($quick_count) and slow count ($slow_count) differ!"
+			continue
+		fi
+	fi
+
+	$verbose && echo "$path: $quick_count"
+done
+
