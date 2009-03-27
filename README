@@ -4,26 +4,20 @@
 
 
 
-Joins a bunch of PDFs files in a directory hierarchy into a single pdf.
-
-pdfdir-join expects each chapter to be in a separate pdf file.  It easily
-assembles them into a book, complete with bookmarks (bookmarks are Adobe's
-name for the the table of contents navigation in most PDF readers).
+Joins a bunch of PDF files in a directory hierarchy into a single pdf.
+Creates a bookmark to each file (bookmarks are the table of contents
+found in the sidebar of most PDF readers).
 
 
-requires: Ghostscript, JPdfBookmarks
-http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
-
-
-If you arrange your files in a hierarchy, like this:
+If you arrange your PDF files in a hierarchy, like this:
 
     book / 01-Introduction.pdf
     book / 02-Engine
-    book / 02-Engine / 01-Oil.pdf
-    book / 02-Engine / 01-Freeze Plugs.pdf
+    book / 02-Engine / 01-Coolant.pdf
+    book / 02-Engine / 02-Freeze Plugs.pdf
 
-    The "01-", "02-" etc determines the order of the chapters in the
-    final book.  They will not appear in the bookmark name.
+    (the "01-", "02-" prefixes determine the order of the chapters in the
+    final book.  They will not appear in the bookmarks.)
 
 Then run the script:
 
@@ -34,16 +28,23 @@ you will find the result in "book.pdf"
 Too easy!
 
 
+requires: Ghostscript, JPdfBookmarks
+http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
+
+
+pdfdir comes with a few utilites to help create good input files.
+
+
 To quickly discover if any PDFs are corrupt:
 
     $ pdfdir-verify book
 
-By default this uses Ghostscript to carefully process every page of every PDF.
-This is awfully slow so you can specify --quick for a 10X speedup at the risk
-of missing some obscure corruptions.
+This uses Ghostscript to carefully process every page of every PDF.
+This is awfully slow so you can specify --quick for a 10X speedup
+at the risk of missing some obscure corruptions.
 
 
-If you're having trouble with encrypted or corrupt PDFs, try using
+And, if you're having trouble with encrypted or corrupt PDFs, try using
 pdfdir-copy to create a duplicate of your entire directory structure.
  It takes a while but, because it re-encodes each PDF with ghostscript,
 this ensures that the result is valid.
