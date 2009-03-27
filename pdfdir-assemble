@@ -80,17 +80,21 @@ process_path() {
 # Turns the output from ghostscript into a bookmark file.
 process_gs_output() {
 	pat_newfile='Processing pages ([0-9]+) through ([0-9]+)'
+	pat_filename='--- PDFDIR FILE: (.*)$'
 	pat_newpage='Page ([0-9]+)'
 	outpage=1
 	while read line; do
 		if [[ $line =~ $pat_newfile ]]; then
+			# check to see if ghostscript has lost its mind
 			[ "x$totalpages" != "x$inpage" ] && \
 				die "Did not match: $inpage vs $totalpages"
 			outpage=$((outpage + inpage))
 			curpathno=$((curpathno + 1))
-			read curpath <&5 || die "$pathfile truncated!"
 			inpage=1;
 			totalpages="${BASH_REMATCH[2]}"
+		elif [[ $line =~ $pat_filename ]]; then
+			curpath="${BASH_REMATCH[1]}"
+			[ -z "$curpath" ] && die "Wasn't told filename?"
 			echo -e "\nFile $curpathno/$pathcount: $curpath"
 			process_path "$curpath" "$outpage" >&6
 			echo -n " $totalpages Pages:"
@@ -100,8 +104,6 @@ process_gs_output() {
 		fi
 	done
 	echo
-	read curpath <&5 && die "$pathfile too long: $curpath"
-	exec 5<&-
 	exec 6>&-
 }
 
@@ -110,12 +112,12 @@ process_gs_output() {
 
 pathfile="$(mktemp)" || exit 1
 pathcount=$(find "$root" -name "*.pdf" -print | sort | tee "$pathfile" | wc -l)
-exec 5<"$pathfile"
 markfile="$(mktemp)" || exit 1
 exec 6>"$markfile"
 
 while read path; do
-  echo "($path) run"
+  escpath="$(echo "$path" | sed -e 's/\([()\]\)/\\\1/g')"
+  echo "($escpath) dup (--- PDFDIR FILE: ) exch concatstrings = run"
 done < "$pathfile" | gs -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE 2>/dev/null | process_gs_output
 
 if [ -f "$markfile" ]; then
