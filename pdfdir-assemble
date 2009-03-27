@@ -33,6 +33,7 @@ die () {
 root="$1"
 [ "x$root" = "x" ] && die "Please specify a directory to operate on"
 outbase="$(basename "$root")"
+[ "x$outbase" = "x." ] && outbase=out
 [ -f "$outbase".pdf ] && die "Will not overwrite $outbase.pdf"
 
 
