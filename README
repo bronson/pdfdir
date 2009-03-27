@@ -1,0 +1,51 @@
+
+
+                                  pdfdir
+
+
+
+Joins a bunch of PDFs files in a directory hierarchy into a single pdf,
+complete with bookmarks to each file.
+
+If you put each chapter in its own PDF file, this easily assembles all
+the chapters into a book, complete with bookmarks (the index / table of
+contents found in the sidebar).
+
+
+requires: Ghostscript, JPdfBookmarks
+http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
+
+
+You arrange your files in a hierarchy, like this:
+
+    book / 01-Introduction.pdf
+    book / 02-Engine
+    book / 02-Engine / 01-Oil.pdf
+    book / 02-Engine / 01-Freeze Plugs.pdf
+
+The "01-", "02-" etc just determine the order of the chapters in the
+final book.  They will not appear in the bookmark name.
+
+Then just run the script:
+
+    $ pdfdir-join book
+
+And find the result in "book.pdf"
+
+Easy!
+
+
+If you're having trouble with encrypted or corrupt PDFs, try copying
+everything.  It takes a while but it ensures that ghostscript can work
+with all the resulting PDFs.
+
+    $ pdfdir-copy book /tmp/book-fixed
+
+
+To discover if any PDFs are corrupt:
+
+    $ pdfdir-verify book
+
+By default this uses Ghostscript to process every page of every PDF.
+That's quite slow.  Specify --quick for a massive speedup at the risk
+of missing some obscure corrupted PDFs.

@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# assemble-chapters
-# Scott Bronson, bronson@rinspin.com
+# pdfdir-join     http://github.com/bronson/pdfdir
+# Scott Bronson   bronson@rinspin.com
 # 17 Mar 2009
 #
-# This script will assemble a bunch of PDFs files in a directory
-# hierarchy into a single pdf with bookmarks to each file.
+# This script assembles a bunch of PDFs files into a single pdf with
+# bookmarks to each file.
 #
-# requires: JPdfBookmarks
+# requires: Ghostscript, JPdfBookmarks
 # http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
 #
 # Your files should be arranged in a hierarchy, somewhat like this:
@@ -18,8 +18,8 @@
 # The "01-", "02-" etc to force ordering will be stripped from the
 # bookmark name.
 #
-# Then just run this script:
-#     $ assemble-chapters book
+# Then just run the script:
+#     $ pdfdir-join book
 #
 # TODO: it would not be too hard to preserve existing bookmarks.  Just need
 # to read them, offset them, and include them in the new bookmark file.
