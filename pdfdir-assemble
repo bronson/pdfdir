@@ -27,6 +27,7 @@
 
 die () {
 	echo "$*" >&2
+	[ -n "$markfile" ] && rm -f "$markfile"
 	exit 1
 }
 
@@ -117,10 +118,13 @@ while read path; do
   echo "($path) run"
 done < "$pathfile" | gs -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE 2>/dev/null | process_gs_output
 
+if [ -f "$markfile" ]; then
+	echo "Applying bookmarks..."
+	jpdfbookmarks --apply "$outbase".nomarks.pdf "$markfile" "$outbase".pdf
+	rm "$markfile"
+	echo "PDF saved to $outbase".pdf
+fi
+
 rm "$pathfile"
-echo "Applying bookmarks..."
-jpdfbookmarks --apply "$outbase".nomarks.pdf "$markfile" "$outbase".pdf
-rm "$markfile"
-rm "$outbase".nomarks.pdf
-echo "PDF saved to $outbase".pdf
+rm -f "$outbase".nomarks.pdf
 
