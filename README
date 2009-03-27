@@ -4,48 +4,49 @@
 
 
 
-Joins a bunch of PDFs files in a directory hierarchy into a single pdf,
-complete with bookmarks to each file.
+Joins a bunch of PDFs files in a directory hierarchy into a single pdf.
 
-If you put each chapter in its own PDF file, this easily assembles all
-the chapters into a book, complete with bookmarks (the index / table of
-contents found in the sidebar).
+pdfdir-join expects each chapter to be in a separate pdf file.  It easily
+assembles them into a book, complete with bookmarks (bookmarks are Adobe's
+name for the the table of contents navigation in most PDF readers).
 
 
 requires: Ghostscript, JPdfBookmarks
 http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
 
 
-You arrange your files in a hierarchy, like this:
+If you arrange your files in a hierarchy, like this:
 
     book / 01-Introduction.pdf
     book / 02-Engine
     book / 02-Engine / 01-Oil.pdf
     book / 02-Engine / 01-Freeze Plugs.pdf
 
-The "01-", "02-" etc just determine the order of the chapters in the
-final book.  They will not appear in the bookmark name.
+    The "01-", "02-" etc determines the order of the chapters in the
+    final book.  They will not appear in the bookmark name.
 
-Then just run the script:
+Then run the script:
 
     $ pdfdir-join book
 
-And find the result in "book.pdf"
+you will find the result in "book.pdf"
 
-Easy!
-
-
-If you're having trouble with encrypted or corrupt PDFs, try copying
-everything.  It takes a while but it ensures that ghostscript can work
-with all the resulting PDFs.
-
-    $ pdfdir-copy book /tmp/book-fixed
+Too easy!
 
 
-To discover if any PDFs are corrupt:
+To quickly discover if any PDFs are corrupt:
 
     $ pdfdir-verify book
 
-By default this uses Ghostscript to process every page of every PDF.
-That's quite slow.  Specify --quick for a massive speedup at the risk
-of missing some obscure corrupted PDFs.
+By default this uses Ghostscript to carefully process every page of every PDF.
+This is awfully slow so you can specify --quick for a 10X speedup at the risk
+of missing some obscure corruptions.
+
+
+If you're having trouble with encrypted or corrupt PDFs, try using
+pdfdir-copy to create a duplicate of your entire directory structure.
+ It takes a while but, because it re-encodes each PDF with ghostscript,
+this ensures that the result is valid.
+
+    $ pdfdir-copy book /tmp/book-fixed
+
