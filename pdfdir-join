@@ -49,7 +49,7 @@ fix_filename() {
 # this function prints the lines needed to get them back in sync.
 print_differing() {
 	while true; do
-		echo "$prestr$(fix_filename ${entries[$idir]})/$curpage,FitWidth,0"
+		echo "$prestr$(fix_filename "${entries[$idir]}")/$curpage,FitWidth,0"
 		stack[$idir]="${entries[$idir]}"
 		prestr="$prestr"$(echo -en "\t")
 		[ $((idir++)) -eq $lastdir ] && break;
@@ -70,7 +70,7 @@ process_path() {
 			print_differing
 			break
 		fi
-		prestr="$prestr"$(echo -en "\t")
+		prestr="$prestr$(echo -en "\t")"
 	done
 	filename="${entries[$((lastdir+1))]}"
 	name="$(fix_filename "$name")"
@@ -129,6 +129,7 @@ if [ -f "$markfile" ]; then
 	jpdfbookmarks --apply "$outbase".nomarks.pdf "$markfile" "$outbase".pdf
 	rm "$markfile"
 	echo "PDF saved to $outbase".pdf
+	echo
 fi
 
 rm "$pathfile"
