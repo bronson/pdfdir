@@ -83,24 +83,28 @@ process_gs_output() {
 	pat_newfile='Processing pages ([0-9]+) through ([0-9]+)'
 	pat_newpage='Page ([0-9]+)'
 	outpage=1
+	corrupt=start
 	while read line; do
 		if [[ $line =~ $pat_filename ]]; then
+			[ "$corrupt" = "yes" ] && echo -n " CORRUPT!"
+			corrupt=yes
 			curpath="${BASH_REMATCH[1]}"
+			curpathno=$((curpathno + 1))
 			[ -z "$curpath" ] && die "Wasn't told filename?"
 			echo -e "\nFile $curpathno/$pathcount: $curpath"
-			process_path "$curpath" "$outpage" >&6
-			echo -n " $totalpages Pages:"
-		if [[ $line =~ $pat_newfile ]]; then
+		elif [[ $line =~ $pat_newfile ]]; then
 			# check to see if ghostscript has lost its mind
 			[ "x$totalpages" != "x$inpage" ] && \
 				die "Did not match: $inpage vs $totalpages"
 			outpage=$((outpage + inpage))
-			curpathno=$((curpathno + 1))
-			inpage=1;
+			inpage=1
 			totalpages="${BASH_REMATCH[2]}"
+			process_path "$curpath" "$outpage" >&6
+			echo -n " $totalpages Pages:"
 		elif [[ $line =~ $pat_newpage ]]; then
 			inpage="${BASH_REMATCH[1]}"
 			echo -n " $((inpage+outpage-1))"
+			corrupt=no
 		fi
 	done
 	echo
