@@ -4,25 +4,29 @@
 # Scott Bronson
 # 16 May 2009
 #
-# Uses ghostscript to re-encode an entire directory of PDF files.
-# This is the best way to remove encryption and recompress but it
-# does take quite a lot of CPU time.
+#    usage: pdfdir-copy src-dir destination-dir
 #
-# We don't bomb out on empty files.  We probably should.
-# We do bomb out on random files.
-#   TODO: watch the output for 0-page files.  Print them.
+# Uses ghostscript to re-encode an entire directory hierarchy of PDF files.
+# This is the best way to remove encryption and recompress but it does take
+# considerable CPU time.
 #
-# usage: pdfdir-copy destination-dir
-#   copies all the pdfs in the current directory and all its subdirs
-#   to the specified destination-dir
+# TODO: We don't bomb out on empty files.  We probably should.
+# TODO: We show ugly ghostscript output and no progress info.  Ugh.
 
-output="$1"
-mkdir -p "$output" || exit
+srcdir="$1"
+dstdir="$2"
 
-find . -name "*.pdf" | while read i; do
+if [ -z "$srcdir" ] || [ -z "$dstdir" ]; then
+	echo "usage: $(basename "$0") src-dir destination-dir"
+	exit
+fi
+
+mkdir -p "$dstdir" || exit
+
+find $srcdir -name "*.pdf" | while read i; do
 	echo "$i"
 	echo "$i" >> /tmp/errout
-	mkdir -p "$output/$(dirname "$i")"
-	gs -sDEVICE=pdfwrite -sOUTPUTFILE="$output/$i" -dBATCH -dNOPAUSE "$i" 2>>/tmp/errout || echo "$i" >> /tmp/badfiles
+	mkdir -p "$dstdir/$(dirname "$i")"
+	gs -sDEVICE=pdfwrite -sOUTPUTFILE="$dstdir/$i" -dBATCH -dNOPAUSE "$i" 2>>/tmp/errout || echo "$i" >> /tmp/badfiles
 done
 
