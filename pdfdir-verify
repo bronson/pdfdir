@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# pdfdir-verify
-# Scott Bronson, bronson@rinspin.com
+# pdfdir-verify   http://github.com/bronson/pdfdir
+# Scott Bronson
 # 26 Mar 2009
 #
 # This script tries to determine if your pdf files are good.
