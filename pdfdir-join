@@ -73,8 +73,8 @@ process_path() {
 		prestr="$prestr$(echo -en "\t")"
 	done
 	filename="${entries[$((lastdir+1))]}"
-	name="$(fix_filename "$name")"
-	echo "$prestr${filename/%\.pdf/}/$curpage,FitWidth,0"
+	name="$(fix_filename "$filename")"
+	echo "$prestr${name/%\.pdf/}/$curpage,FitWidth,0"
 }
 
 # Turns the output from ghostscript into a bookmark file.

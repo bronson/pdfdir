@@ -19,7 +19,7 @@ If you arrange your PDF files in a hierarchy, like this:
     (the "01-", "02-" prefixes determine the order of the chapters in the
     final book.  They will not appear in the bookmarks.)
 
-Then run the script:
+Then run:
 
     $ pdfdir-join book
 
@@ -32,22 +32,21 @@ requires: Ghostscript, JPdfBookmarks
 http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
 
 
-pdfdir comes with a few utilites to help create good input files.
 
-
-To quickly discover if any PDFs are corrupt:
+This package also includes some tools to help assemble the input files.
+This will find corrupt PDFs:
 
     $ pdfdir-verify book
 
-This uses Ghostscript to carefully process every page of every PDF.
-This is awfully slow so you can specify --quick for a 10X speedup
+It uses Ghostscript to carefully process every page of every PDF file.
+This is awfully slow.  You can specify --quick for a 10X speedup
 at the risk of missing some obscure corruptions.
 
 
-And, if you're having trouble with encrypted or corrupt PDFs, try using
-pdfdir-copy to create a duplicate of your entire directory structure.
- It takes a while but, because it re-encodes each PDF with ghostscript,
-this ensures that the result is valid.
+If you're having trouble with encrypted or corrupt PDFs, try using
+pdfdir-copy to duplicate your entire directory structure.  It takes
+a while but, because it re-encodes each PDF, the result is sure to
+be valid.
 
     $ pdfdir-copy book /tmp/book-fixed
 
