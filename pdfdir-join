@@ -15,8 +15,8 @@
 #     book/02-Engine
 #     book/02-Engine/01-Oil.pdf
 #     book/02-Engine/01-Freeze Plugs.pdf
-# The "01-", "02-" etc to force ordering will be stripped from the
-# bookmark name.
+# The "01-", "02-" only force the ordering of the files.  Everything before the
+# first dash will be stripped from the bookmark name.
 #
 # Then just run the script:
 #     $ pdfdir-join book
@@ -122,7 +122,7 @@ exec 6>"$markfile"
 while read path; do
   escpath="$(echo "$path" | sed -e 's/\([()\]\)/\\\1/g')"
   echo "($escpath) dup (--- PDFDIR FILE: ) exch concatstrings = run"
-done < "$pathfile" | gs -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE 2>/dev/null | process_gs_output
+done < "$pathfile" | ghostscript -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE 2>/dev/null | process_gs_output
 
 if [ -f "$markfile" ]; then
 	echo "Applying bookmarks..."
