@@ -5,18 +5,21 @@ Turns a directory tree of PDFs into a single bookmarked PDF.
 Bookmarks are the hierarchical table of contents you see in
 most PDF readers.
 
+Tested on Linux and Mac.
+
 
 ### Usage
 
-If you arrange your PDF files in a hierarchy, like this:
+If you arrange your PDF files in folders like this:
 
-    book / 01-Introduction.pdf
-    book / 02-Engine
-    book / 02-Engine / 01-Coolant.pdf
-    book / 02-Engine / 02-Freeze Plugs.pdf
+    book/01-Table of Contents.pdf
+    book/02-First Generation/Mary Cunningham.pdf
+    book/02-First Generation/Peter Cunningham.pdf
+    book/03-Second Generation/John Mendell Cunningham.pdf
+    book/99-Index.pdf
 
-    (the "01-", "02-" prefixes determine the order of the chapters in the
-    final book.  They will not appear in the bookmarks.)
+The "01-", "02-" prefixes determine the order of the chapters in the
+final book.  They will not appear in the bookmarks.
 
 Then run:
 
@@ -24,15 +27,13 @@ Then run:
 
 you will find the result in "book.pdf"
 
-Too easy!
-
 
 ### Prerequisites
 
-Ghostscript
-
 MacOS: brew install ghostscript
 Linux: apt-get install ghostscript
+
+And also Ruby.  Hopefully this is temporary.
 
 
 ### Verify PDFs

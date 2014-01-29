@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+def next_line
+  line = STDIN.readline
+  op,args = line.split(' ', 2)
+  page,args = args.split(' ', 2) if op == 'push'
+  return op, page, args
+end
+
+def process_tokens inpage=1, intitle=nil
+  result = []
+
+  until STDIN.eof?
+    op,page,title = next_line
+    if op == 'push'
+      nested = process_tokens(page, title)
+      result << "#{nested.length} #{page} #{title}"
+      result.concat nested
+    elsif op == 'pop'
+      raise "wtf: #{inpage} != #{page}" if intitle && intitle != title
+      return result
+    else
+      raise "wtf: #{op} #{page} #{title}"
+    end
+  end
+  return result
+end
+
+puts process_tokens.join

@@ -24,55 +24,16 @@
 
 die () {
 	echo "$*" >&2
-	[ -n "$markfile" ] && rm -f "$markfile"
+	[ -n "$streamfile" ] && rm -f "$streamfile"
 	exit 1
 }
 
-root="$1"
-[ "x$root" = "x" ] && die "Please specify a directory to operate on"
+root="${1%/}"
+[ -z "$root" ] && die "Please specify a directory to operate on"
 outbase="$(basename "$root")"
 [ "x$outbase" = "x." ] && outbase=out
 [ -f "$outbase".pdf ] && die "Will not overwrite $outbase.pdf"
 
-
-# Strips the numbering from file and directory names.
-# http://mywiki.wooledge.org/BashFAQ/073 describes this.
-fix_filename() {
-	echo "${1#*-}"
-}
-
-
-# If the previous path and current path contain different directories,
-# this function prints the lines needed to get them back in sync.
-print_differing() {
-	while true; do
-		echo "$prestr$(fix_filename "${entries[$idir]}")/$curpage,FitWidth,0"
-		stack[$idir]="${entries[$idir]}"
-		prestr="$prestr"$(echo -en "\t")
-		[ $((idir++)) -eq $lastdir ] && break;
-	done
-}
-
-# Creates a valid hierarchy for the given path
-process_path() {
-	curpage="$2"
-	oldifs="$IFS"
-	IFS=/ entries=( $1 )
-	IFS="$oldifs"
-
-	prestr=""
-	lastdir=$((${#entries[*]}-2))
-	for idir in $(seq 1 $lastdir); do
-		if [ "x${stack[$idir]}" != "x${entries[$idir]}" ]; then
-			print_differing
-			break
-		fi
-		prestr="$prestr$(echo -en "\t")"
-	done
-	filename="${entries[$((lastdir+1))]}"
-	name="$(fix_filename "$filename")"
-	echo "$prestr${name/%\.pdf/}/$curpage,FitWidth,0"
-}
 
 # Turns the output from ghostscript into a bookmark file.
 process_gs_output() {
@@ -81,6 +42,7 @@ process_gs_output() {
 	pat_newpage='Page ([0-9]+)'
 	outpage=1
 	corrupt=start
+
 	while read line; do
 		if [[ $line =~ $pat_filename ]]; then
 			[ "$corrupt" = "yes" ] && echo -n " CORRUPT!"
@@ -91,12 +53,11 @@ process_gs_output() {
 			echo -e "\nFile $curpathno/$pathcount: $curpath"
 		elif [[ $line =~ $pat_newfile ]]; then
 			# check to see if ghostscript has lost its mind
-			[ "x$totalpages" != "x$inpage" ] && \
-				die "Did not match: $inpage vs $totalpages"
+			[ "x$totalpages" != "x$inpage" ] && die "Did not match: $inpage vs $totalpages"
 			outpage=$((outpage + inpage))
 			inpage=1
 			totalpages="${BASH_REMATCH[2]}"
-			process_path "$curpath" "$outpage" >&6
+			echo "$outpage ${curpath#$root/}" >&6
 			echo -n " $totalpages Page$([ "$totalpages" -eq 1 ] || echo -n s):"
 		elif [[ $line =~ $pat_newpage ]]; then
 			inpage="${BASH_REMATCH[1]}"
@@ -109,22 +70,32 @@ process_gs_output() {
 }
 
 
+format_markfile() {
+	while read count page title; do
+		[ "$count" -eq 0 ] && count='' || count="/Count $count "
+		title="$(echo "$title" | sed -e 's/\([()\\\]\)/\\\1/g')" # escape PDF string
+		echo "[ $count/Title ($title) /Page $page /OUT pdfmark"
+	done
+}
+
+
 # ok lets go
 
 pathfile="$outbase".paths
 pathcount="$(find "$root" -name "*.pdf" -print | sort | tee "$pathfile" | wc -l | tr -d ' ')"
-markfile="$outbase".marks
-exec 6>"$markfile"
+streamfile="$outbase".stream
+exec 6>"$streamfile"
 
 while read path; do
   escpath="$(echo "$path" | sed -e 's/\([()\]\)/\\\1/g')"
   echo "($escpath) dup (--- PDFDIR FILE: ) exch concatstrings = run"
-done < "$pathfile" | ghostscript -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE 2>/dev/null | process_gs_output
+done < "$pathfile" | ghostscript -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE | process_gs_output
 
-if [ -f "$markfile" ]; then
+if [ -f "$streamfile" ]; then
 	echo "Applying bookmarks..."
-	jpdfbookmarks --apply "$outbase".nomarks.pdf "$markfile" "$outbase".pdf
-	rm "$markfile"
+	cat "$streamfile" | ./pdfdir-tokenize | ./pdfdir-makemarks | format_markfile > "$outbase".marks
+	ghostscript -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile="$outbase".pdf "$outbase".nomarks.pdf "$outbase".marks
+	rm "$streamfile" "$outbase".marks
 	echo "PDF saved to $outbase".pdf
 	echo
 fi
