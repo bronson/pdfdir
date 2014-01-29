@@ -1,13 +1,12 @@
+## pdfdir
+
+Turns a directory tree of PDFs into a single bookmarked PDF.
+
+Bookmarks are the hierarchical table of contents you see in
+most PDF readers.
 
 
-                                  pdfdir
-
-
-
-Joins a bunch of PDF files in a directory hierarchy into a single pdf.
-Creates a bookmark to each file (bookmarks are the table of contents
-found in the sidebar of most PDF readers).
-
+### Usage
 
 If you arrange your PDF files in a hierarchy, like this:
 
@@ -28,10 +27,15 @@ you will find the result in "book.pdf"
 Too easy!
 
 
-requires: Ghostscript, JPdfBookmarks
-http://flavianopetrocchi.blogspot.com/2008/07/jpsdbookmarks-download-page.html
+### Prerequisites
+
+Ghostscript
+
+MacOS: brew install ghostscript
+Linux: apt-get install ghostscript
 
 
+### Verify PDFs
 
 This package also includes some tools to help assemble the input files.
 This will find corrupt PDFs:
@@ -42,6 +46,8 @@ It uses Ghostscript to carefully process every page of every PDF file.
 This is awfully slow.  You can specify --quick for a 10X speedup
 at the risk of missing some obscure corruptions.
 
+
+### Re-encode PDFs
 
 If you're having trouble with encrypted or corrupt PDFs, try using
 pdfdir-copy to duplicate your entire directory structure.  It takes
