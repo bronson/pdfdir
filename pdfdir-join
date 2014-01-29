@@ -18,6 +18,7 @@
 # Then just run the script:
 #     $ pdfdir-join book
 #
+# TODO: should allow negative counts so the subsection will default to open
 # TODO: it would not be too hard to preserve existing bookmarks.  Just need
 # to read them, offset them, and include them in the new bookmark file.
 
@@ -69,6 +70,92 @@ process_gs_output() {
 	exec 6>&-
 }
 
+# 1 01 - Test One.pdf
+# 2 02 - Section Two/01 - Test 2.1.pdf
+# 3 02 - Section Two/02 - Test 2.2.pdf
+# 4 03 - Test 3.pdf
+
+tokenize_stream() {
+	# todo: convert this back into shellscript
+	exec ruby <(cat <<-EOS
+		# splits two arrays into their similarities and differences.
+		# given [a, b, c] and [a, b, d, e] returns [[a, b], [c], [d, e]]
+		def common_prefix a, b
+		  smaller_size = [a.length, b.length].min
+		  smaller_size.times do |i|
+		    if a[i] != b[i]
+		      return a.take(i), a[i..-1], b[i..-1]
+		    end
+		  end
+		  return a, a[smaller_size..-1], b[smaller_size..-1]
+		end
+
+
+		oldpath = []
+		STDIN.each_line do |line|
+		  page,fullpath = line.split(' ', 2)
+		  path = fullpath.split('/')
+
+		  prefix,outgoing,incoming = common_prefix(oldpath, path)
+		  outgoing.reverse.each { |o| puts "pop #{o}" }
+		  incoming.each { |o| puts "push #{page} #{o}" }
+		  oldpath = path
+		end
+		oldpath.reverse.each { |o| puts "pop #{o}" }
+	EOS
+	)
+}
+
+# push 1 Test One
+# pop 1 Test One
+# push 2 Section Two
+# push 2 Test 2.1
+# pop Test 2.1
+# push 3 Test 2.2
+# pop Test 2.2
+# pop Section Two
+# push 4 Test 3
+# pop Test 3
+
+extract_marks() {
+	# todo: convert this back into shellscript
+	exec ruby <(cat <<-EOS
+		def next_line
+		  line = STDIN.readline
+		  op,args = line.split(' ', 2)
+		  page,args = args.split(' ', 2) if op == 'push'
+		  return op, page, args
+		end
+
+		def process_tokens inpage=1, intitle=nil
+		  result = []
+
+		  until STDIN.eof?
+		    op,page,title = next_line
+		    if op == 'push'
+		      nested = process_tokens(page, title)
+		      result << "#{nested.length} #{page} #{title}"
+		      result.concat nested
+		    elsif op == 'pop'
+		      raise "wtf: #{inpage} != #{page}" if intitle && intitle != title
+		      return result
+		    else
+		      raise "wtf: #{op} #{page} #{title}"
+		    end
+		  end
+		  return result
+		end
+
+		puts process_tokens.join
+	EOS
+	)
+}
+
+# 0 1 Test One
+# 2 2 Section Two
+# 0 2 Test 2.1
+# 0 3 Test 2.2
+# 0 4 Test 3
 
 format_markfile() {
 	while read count page title; do
@@ -77,6 +164,14 @@ format_markfile() {
 		echo "[ $count/Title ($title) /Page $page /OUT pdfmark"
 	done
 }
+
+# [ /Title (Test One) /Page 1 /OUT pdfmark
+# [ /Count 2 /Title (Section Two) /Page 2 /OUT pdfmark
+# [ /Title (Test 2.1) /Page 2 /OUT pdfmark
+# [ /Title (Test 2.2) /Page 3 /OUT pdfmark
+# [ /Title (Test 3) /Page 4 /OUT pdfmark
+
+# and we're done!
 
 
 # ok lets go
@@ -92,10 +187,12 @@ while read path; do
 done < "$pathfile" | ghostscript -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE | process_gs_output
 
 if [ -f "$streamfile" ]; then
+	echo
 	echo "Applying bookmarks..."
-	cat "$streamfile" | ./pdfdir-tokenize | ./pdfdir-makemarks | format_markfile > "$outbase".marks
+	cat "$streamfile" | tokenize_stream | extract_marks | format_markfile > "$outbase".marks
 	ghostscript -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile="$outbase".pdf "$outbase".nomarks.pdf "$outbase".marks
 	rm "$streamfile" "$outbase".marks
+	echo
 	echo "PDF saved to $outbase".pdf
 	echo
 fi
