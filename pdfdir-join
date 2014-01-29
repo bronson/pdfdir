@@ -97,7 +97,7 @@ process_gs_output() {
 			inpage=1
 			totalpages="${BASH_REMATCH[2]}"
 			process_path "$curpath" "$outpage" >&6
-			echo -n " $totalpages Pages:"
+			echo -n " $totalpages Page$([ "$totalpages" -eq 1 ] || echo -n s):"
 		elif [[ $line =~ $pat_newpage ]]; then
 			inpage="${BASH_REMATCH[1]}"
 			echo -n " $((inpage+outpage-1))"
