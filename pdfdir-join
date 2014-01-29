@@ -115,7 +115,7 @@ process_gs_output() {
 # ok lets go
 
 pathfile="$(mktemp)" || exit 1
-pathcount=$(find "$root" -name "*.pdf" -print | sort | tee "$pathfile" | wc -l)
+pathcount=$(find "$root" -name "*.pdf" -print | sort | tee "$pathfile" | wc -l | tr -d ' ')
 markfile="$(mktemp)" || exit 1
 exec 6>"$markfile"
 
