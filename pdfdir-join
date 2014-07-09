@@ -178,6 +178,12 @@ format_markfile() {
 
 # ok lets go
 
+if which ghostscript >/dev/null; then
+	ghostscript=ghostscript
+elif which gs >/dev/null; then
+	ghostscript=gs
+fi
+
 pathfile="$outbase".paths
 pathcount="$(find "$root" -name "*.pdf" -print | sort | tee "$pathfile" | wc -l | tr -d ' ')"
 streamfile="$outbase".stream
@@ -186,13 +192,13 @@ exec 6>"$streamfile"
 while read path; do
   escpath="$(echo "$path" | sed -e 's/\([()\]\)/\\\1/g')"
   echo "($escpath) dup (--- PDFDIR FILE: ) exch concatstrings = run"
-done < "$pathfile" | ghostscript -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE | process_gs_output
+done < "$pathfile" | $ghostscript -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE | process_gs_output
 
 if [ -f "$streamfile" ]; then
 	echo
 	echo "Applying bookmarks..."
 	cat "$streamfile" | tokenize_stream | extract_marks | format_markfile > "$outbase".marks
-	ghostscript -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile="$outbase".pdf "$outbase".nomarks.pdf "$outbase".marks
+	$ghostscript -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile="$outbase".pdf "$outbase".nomarks.pdf "$outbase".marks
 	rm "$streamfile" "$outbase".marks
 	echo
 	echo "PDF saved to $outbase".pdf
