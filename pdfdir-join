@@ -161,9 +161,13 @@ format_markfile() {
 	while read count page title; do
 		[ "$count" -eq 0 ] && count='' || count="/Count $count "
 		title="${title#*-"${var%%[![:space:]]*}"}"  # remove everything before the first dash
+		title="${title#" "}"                        # strip a single leading space if present
 		title="${title%.[pP][dD][fF]}"              # remove trailing .pdf or .PDF
 		title="$(echo "$title" | sed -e 's/\([()\\\]\)/\\\1/g')" # escape PDF string
-		echo "[ $count/Title ($title) /Page $page /OUT pdfmark"
+		if [[ "$title" != :* ]]; then
+			# don't add filenames beginning with a colon to the index
+			echo "[ $count/Title ($title) /Page $page /OUT pdfmark"
+		fi
 	done
 }
 
