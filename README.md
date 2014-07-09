@@ -1,9 +1,7 @@
 ## pdfdir
 
 Turns a directory tree of PDFs into a single bookmarked PDF.
-
-Bookmarks are the hierarchical table of contents you see in
-most PDF readers.
+Automatically handles the table of contents.
 
 Tested on Linux and Mac.
 
@@ -35,12 +33,11 @@ The PDF's table of contents will be automatically generated from the filenames:
       John Mendell Cunningham
     Index
 
-The "01-", "02-" prefixes determine the order of the chapters in the
+The `01-`, `02-` prefixes determine the order of the chapters in the
 final book and don't appear in the bookmarks.
 
-Normally each filename is automatically added to the table of contents.
-If you don't want this, adding a `:`  at the beginning of the filename
-will keep it hidden (see 02-:more-notes.pdf above).
+If you don't want a file to be added to the TOC, adding a `:`  to the beginning
+of its filename will suppress it (`02-:more-notes.pdf` above).
 
 
 ### Prerequisites
