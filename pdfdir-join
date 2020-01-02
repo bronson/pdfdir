@@ -186,6 +186,9 @@ if which ghostscript >/dev/null; then
 	ghostscript=ghostscript
 elif which gs >/dev/null; then
 	ghostscript=gs
+else
+	echo 'Could not find ghostscript'
+	exit 1
 fi
 
 pathfile="$outbase".paths
@@ -211,4 +214,3 @@ fi
 
 rm "$pathfile"
 rm -f "$outbase".nomarks.pdf
-
