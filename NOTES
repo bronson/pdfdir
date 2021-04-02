@@ -1,0 +1,17 @@
+Using Platypus: https://github.com/bronson/exifixer
+  Looks like I can support the Platypus progress bar.
+
+Make it support reprocessing images.
+  Args: https://web.archive.org/web/20190212174315/https://www.ghostscript.com/doc/current/Ps2pdf.htm
+
+Rewrite in Ruby so it's maintainable again.
+  (or rust...?)
+  NO: rewrite the Ruby to be shell!
+    Ask someone else to do this...?
+
+To not reprocess images: https://superuser.com/questions/360216/use-ghostscript-but-tell-it-to-not-reprocess-images
+  (except that this is 8 years ago)
+  And I don't see ghostscript reprocessing by default...
+    but maybe there are site settings I should override.
+
+ add a pdef-split script, that does the opposite of pdef-join?

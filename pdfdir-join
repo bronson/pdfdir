@@ -199,7 +199,18 @@ exec 6>"$streamfile"
 while read path; do
   escpath="$(echo "$path" | sed -e 's/\([()\]\)/\\\1/g')"
   echo "($escpath) dup (--- PDFDIR FILE: ) exch concatstrings = run"
-done < "$pathfile" | $ghostscript -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE -dNOSAFER -dPrinted=false | process_gs_output
+# Explicitly use default settings so we can be as close to an unmodified passthrough as ghostscript will allow.
+# Other potential values:
+#   -dPDFSETTINGS=
+#      screen: 1/200 the size and absolutely unacceptable
+#      ebook: 1/20th the size and acceptable
+#      printer: 1/2 the size and decent
+#      prepress: 3/4 the size and not apprecialbly better than printer
+#      default: looks pretty much unchanged, both file size and quality
+# https://web.archive.org/web/20190212174315/https://www.ghostscript.com/doc/current/Ps2pdf.htm
+# TODO: mess with ebook settings to try to increase contrast?
+done < "$pathfile" | $ghostscript -sDEVICE=pdfwrite -sOUTPUTFILE="$outbase".nomarks.pdf -dNOPAUSE -dNOSAFER -dPrinted=false \
+  -dCompatibilityLevel=1.4 -dPDFSETTINGS=/default | process_gs_output
 
 if [ -f "$streamfile" ]; then
 	echo
